@@ -274,7 +274,7 @@ for i=1:numel(M)
     if isMATLABReleaseOlderThan('R2022b')
         EVC=eigenvector_centrality_und(full(R(Coordsi,Coordsi)));
     else
-        EVC=centrality(full(R(Coordsi,Coordsi)),"eigenvector");
+        EVC=centrality(graph(full(R(Coordsi,Coordsi))),"eigenvector");
     end
     EVCs{i}=EVC;
     if numel(EVC(EVC>min_evalue))>2
@@ -401,7 +401,11 @@ while l==false
     
     for i=1:numel(M)
         Coordsi=Coords((S==M(i))&(coords==1));
-        EVC=eigenvector_centrality_und(full(R(Coordsi,Coordsi)));
+        if isMATLABReleaseOlderThan('R2022b')
+            EVC=eigenvector_centrality_und(full(R(Coordsi,Coordsi)));
+        else
+            EVC=centrality(graph(full(R(Coordsi,Coordsi))),"eigenvector");
+        end
         EVCs{i}=EVC;
         L(:,i)=sum(data(:,Coordsi).*EVC',2);
     end
