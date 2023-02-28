@@ -2,8 +2,7 @@
 % University of Pannonia, Faculty of Economics, 
 %  Department of Quantitative Methods
 %----------------
-%Implementation of Network-based, non-parametric principal component 
-% analysis
+%Implementation of Network-based dimension reduction and analyis (0.1.6)
 %----------------
 %Outputs:
 %L: n by m matrix of factor scores, where n is the number of rows in a
@@ -17,7 +16,7 @@
 %S: m by 1 vector of membership
 %---------------- 
 %Input:
-%data: n by M matrix of data source (mandatory)
+%data: n by M matrix/table/structure of data source (mandatory)
 %---------------- 
 %Optional input parameters:
 %---------------- 
