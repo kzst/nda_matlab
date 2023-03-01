@@ -22,12 +22,12 @@ This package provides Network-based dimensionality reduction and analysis.
 * Zsolt T. Kosztyan
 
 ### Outputs:
-L: n by m matrix of factor scores, where n is the number of rows in a datasource, m is tne number of latent factors
-C: m by m factor correlation matrix 
+Scores: n by m matrix of factor scores, where n is the number of rows in a datasource, m is tne number of latent factors
+CMTX: m by m factor correlation matrix 
 COMMUNALITY: n by 1 row vector of communalities
 LOADINGS: s by m matrix of factor loadings, where s is the number of selected indicators
 LTABLE: s by m table of factor loadings, where s is the number of % selected indicators
-S: m by 1 vector of membership
+MEMBERSHIPS: m by 1 vector of membership
 
 ### Input:
 data: n by M matrix/table/structure of data source (mandatory)
@@ -58,14 +58,14 @@ cuts: Draw correlation graph with cuts value (default: 0 => No
 correlation graph)
 
 ## Usages:
-[L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(data)
-[L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(data,Xheader)
-[L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(data,Xheader,...)
+[Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(data)
+[Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(data,Xheader)
+[Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(data,Xheader,...)
 
 ## Examples:
 load CWTS_2020
-[L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(CWTS_2020)
-[L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(CWTS_2020,'RotationMethod','varimax','MinimalCommunity',3)
+[Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(CWTS_2020)
+[Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(CWTS_2020,'RotationMethod','varimax','MinimalCommunity',3)
 
 ## Requirements:
  Eigenvector centralities (if Matlab release is older than R2020a) 
