@@ -1,25 +1,25 @@
 %Author: Zsolt T. Kosztyan Ph.D habil.
-% University of Pannonia, Faculty of Economics, 
+% University of Pannonia, Faculty of Economics,
 %  Department of Quantitative Methods
 %----------------
 %Implementation of Network-based dimension reduction and analyis (0.1.6)
 %----------------
 %Outputs:
-%L: n by m matrix of factor scores, where n is the number of rows in a
+%Scores: n by m matrix of factor scores, where n is the number of rows in a
 % datasource, m is tne number of latent factors
-%C: m by m factor correlation matrix 
+%CMTX: m by m factor correlation matrix
 %COMMUNALITY: n by 1 row vector of communalities
-%LOADINGS: s by m matrix of factor loadings, where s is the number of 
+%LOADINGS: s by m matrix of factor loadings, where s is the number of
 % selected indicators
-%LTABLE: s by m table of factor loadings, where s is the number of 
+%LTABLE: s by m table of factor loadings, where s is the number of
 % selected indicators
-%S: m by 1 vector of membership
-%---------------- 
+%MEMBERSHIPS: m by 1 vector of membership
+%----------------
 %Input:
 %data: n by M matrix/table/structure of data source (mandatory)
-%---------------- 
+%----------------
 %Optional input parameters:
-%---------------- 
+%----------------
 %XHeader: M by 1 cell array of variable names
 %CorrMethod|cor_method: Correlation method (optional)
 %  Pearson|pearson|'1'|1: Pearson's correlation (default)
@@ -37,7 +37,7 @@
 % MinDet,min_det: Null modell is the specified minimal square correlation
 % (min_det)
 %MinEigCentValue|min_evalue: Minimal EVC value (default: 0.00)
-%MinCommunality|min_communality: Minimal communality value of indicators 
+%MinCommunality|min_communality: Minimal communality value of indicators
 % (default: 0.25)
 %ComCommunalities|com_communalities=0.0: Minimal common communalities
 %RotateMethod: Rotation method (default: none);
@@ -45,45 +45,46 @@
 %cuts: Draw correlation graph with cuts value (default: 0 => No
 %correlation graph)
 
-%---------------- 
+%----------------
 %Usages:
-%[L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(data)
-%[L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(data,Xheader)
-%[L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(data,Xheader,...)
-%---------------- 
+%[Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(data)
+%[Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(data,Xheader)
+%[Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(data,Xheader,...)
+%----------------
 %Examples:
 %load CWTS_2020
-%[L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(CWTS_2020)
-%[L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(CWTS_2020,...
+%[Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(CWTS_2020)
+%[Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(CWTS_2020,...
 %  'RotationMethod','varimax','MinimalCommunity',3)
 
-%---------------- 
+%----------------
 
 %Requirements:
-% Eigenvector centralities (if Matlab release is older than R2020a) 
-% (Contributors): 
+% Eigenvector centralities (if Matlab release is older than R2020a)
+% (Contributors):
 %   Xi-Nian Zuo, Chinese Academy of Sciences, 2010
 %   Rick Betzel, Indiana University, 2012
 %   Mika Rubinov, University of Cambridge, 2015
 
 % Modified GenLouvain toolbox (Contributurs):
-%  Lucas G. S. Jeub, Marya Bazzi, Inderjit S. Jutla, and Peter J. Mucha, 
-% "A generalized Louvain method for community detection implemented in 
+%  Lucas G. S. Jeub, Marya Bazzi, Inderjit S. Jutla, and Peter J. Mucha,
+% "A generalized Louvain method for community detection implemented in
 % MATLAB," https://github.com/GenLouvain/GenLouvain (2011-2019).
 
-function [L,C,COMMUNALITY,LOADINGS,LTABLE,S]=nda(data,varargin)
+function [Scores,CMTX,COMMUNALITY,LOADINGS,LTABLE,MEMBERSHIPS]=nda(data,...
+    varargin)
 if ispc % In case of Windows OS
     path(path,'.\GenLouvain')  % Modified Louvain's modularity calculations
-    addpath(genpath('.\scGEAToolbox-master'))    % Alternative of Louvain's 
+    addpath(genpath('.\scGEAToolbox-master'))    % Alternative of Louvain's
     addpath(genpath('.\scGEAToolbox-master\+run'))             % modularity
-    if isMATLABReleaseOlderThan('R2022b')
+    if verLessThan('matlab', '9.13.0')
         path(path,'.\EVC')         % Eigen-vector centralities (EVC)
     end
 else
     path(path,'./GenLouvain')  % Modified Louvain's modularity calculations
-    addpath(genpath('./scGEAToolbox-master'))    % Alternative of Louvain's 
+    addpath(genpath('./scGEAToolbox-master'))    % Alternative of Louvain's
     addpath(genpath('scGEAToolbox-master\+run'))               % modularity
-    if isMATLABReleaseOlderThan('R2022b')
+    if verLessThan('matlab', '9.13.0')
         path(path,'./EVC')         % Eigen-vector centralities (EVC)
     end
 end % In case of non-Windows OS (Mac, Linux)
@@ -98,10 +99,10 @@ if istable(tdata)
     XHeader=tdata.Properties.VariableNames;
     data=double(table2array(tdata));
 else
-    XHeader=table2cell(table(num2str([1:size(data,2)]')));% Default variable 
-                                % names is the count number of the variable
+    XHeader=table2cell(table(num2str([1:size(data,2)]')));% Default variable
+    % names is the count number of the variable
 end
-data(isnan(data))=0; 
+data(isnan(data))=0;
 data(isinf(data))=0;
 DATA=data;
 X=DATA;
@@ -110,10 +111,10 @@ min_R=0;      % Minimal square correlation between indicators (default: 0)
 min_comm=2;   % Minimal number of indicators in a community (default: 2)
 Gamma=1;      % Gamma parameter in multiresolution null_modell (default: 1)
 null_modell_type=1;      % Newmann-Grivan's null modell
-min_det=0.25;            % Minimal determination value for specified 
-                         %minimal determination null model
+min_det=0.25;            % Minimal determination value for specified
+%minimal determination null model
 min_evalue=0.00;          % Minimal EVC value (default: 0.00)
-min_communality=0.00;    % Minimal communality value of indicators 
+min_communality=0.00;    % Minimal communality value of indicators
 com_communalities=0.0;   % Minimal common communalities
 is_rotated=false;        % No rotation
 rotate_method='varimax'; % Default varimax rotation, if rotation is set
@@ -127,7 +128,7 @@ for i=1:nargin-1
         switch varargin{i}
             case {'CorrMethod','cor_method'} % Correlation method
                 switch varargin{i+1}
-                    case {'Pearson','pearson','1',1} 
+                    case {'Pearson','pearson','1',1}
                         cor_method=1;               % Pearson's Correlation
                     case {'Spearman','spearman','2',2}
                         cor_method=2;              % Spearman's Correlation
@@ -136,44 +137,44 @@ for i=1:nargin-1
                     case {'Distance','distance','4',4}
                         cor_method=4;                % Distance Correlation
                     otherwise
-                      disp(['Warning: Only Pearson, Spearman, ',...
-                           'Kendall and Distance Correlations are ',...,
-                           'implemented. The Pearson correlation will ',...
-                           'be set.'])
+                        disp(['Warning: Only Pearson, Spearman, ',...
+                            'Kendall and Distance Correlations are ',...,
+                            'implemented. The Pearson correlation will ',...
+                            'be set.'])
                         cor_method=1;               % Pearson's Correlation
                 end
-            case {'MinCor2','min_R'}   % Minimal square correlation between 
-                min_R=varargin{i+1};   % indicators 
+            case {'MinCor2','min_R'}   % Minimal square correlation between
+                min_R=varargin{i+1};   % indicators
             case {'MinimalCommunity','min_comm'}        % Minimal number of
                 min_comm=varargin{i+1};         % indicators in a community
-            case {'Gamma','gamma'}     % Gamma parameter in multiresolution 
+            case {'Gamma','gamma'}     % Gamma parameter in multiresolution
                 Gamma=varargin{i+1};                          % null_modell
             case {'NullModelType','null_model_type','null_modell_type'}
                 switch varargin{i+1}
-                    case {'NewmannGrivan','1',1}         % Newmann-Grivan's 
+                    case {'NewmannGrivan','1',1}         % Newmann-Grivan's
                         null_modell_type=1;                   % null modell
-                    case {'AvgDet','2',2}           % Average determination              
+                    case {'AvgDet','2',2}           % Average determination
                         null_modell_type=2;                   % coefficient
                     case {'MinDet','3',3}           % Minimal determination
                         null_modell_type=3;                   % coefficient
                         min_det=varargin{i+2};
                     otherwise
-                        disp('This null model type is not implemented')% If 
+                        disp('This null model type is not implemented')% If
                         null_modell_type=1;% the desired null modell is not
                 end  % implemented, the default null modell is set to be 1.
             case {'MinEigCentValue','min_evalue'}       % Minimal EVC value
                 min_evalue=varargin{i+1};
-            case {'MinCommunality','min_communality'} % Minimal communality 
+            case {'MinCommunality','min_communality'} % Minimal communality
                 min_communality=varargin{i+1};        % value of indicators
-            case {'ComCommunalities','com_communalitities'}% Minimal common 
+            case {'ComCommunalities','com_communalitities'}% Minimal common
                 com_communalities=varargin{i+1};            % communalities
             case {'RotateMethod','rotate_method'}           % Rotate method
                 is_rotated=true;
                 rotate_method=varargin{i+1};
             case {'Biplots','biplots'}      % Draw biplots (default: false)
                 biplots=varargin{i+1};
-            case {'cuts','disp_r'}  % Draw correlation graph with minimal 
-                cuts=varargin{i+1};   % cutting cuts value (default: 0) 
+            case {'cuts','disp_r'}  % Draw correlation graph with minimal
+                cuts=varargin{i+1};   % cutting cuts value (default: 0)
         end
     end
 end
@@ -189,10 +190,10 @@ switch cor_method
         COR=dcor(X);
 end
 
-COR(isnan(COR))=0;                       % Correlation matrix of indicators 
+COR(isnan(COR))=0;                       % Correlation matrix of indicators
 
 R=sparse(min(COR.^2,ones(size(COR))-eye(size(COR))));  % Square correlation
-clear COR           % matrix, as an adjecency matrix 
+clear COR           % matrix, as an adjecency matrix
 
 R=(R+R')/2;         % Determination matrix must be symmetric
 
@@ -212,11 +213,11 @@ coords=ones(size(R,1),1); % Set of indicators (1:included, 0:excluded)
 
 R2=R(coords==1,coords==1);% Part of indicators
 MTX=R2;                   % There is no null model
-switch null_modell_type  
+switch null_modell_type
     case 1                % Null model: multi-resolution version of Newman-
-        MTX=R2-N*Gamma;   %-Grivan model  
+        MTX=R2-N*Gamma;   %-Grivan model
     case 2                % Null model: Average determination coefficient
-        MTX=R2-Gamma*mean(R2(R2>0)); 
+        MTX=R2-Gamma*mean(R2(R2>0));
     case 3                % Null model: Specified minimal determination
         MTX=R2-Gamma*min_det; %coefficient (default value: 0.5)
         
@@ -271,7 +272,7 @@ EVCs={};
 DATAs={};
 for i=1:numel(M)
     Coordsi=Coords((S==M(i))&(coords==1));
-    if isMATLABReleaseOlderThan('R2022b')
+    if verLessThan('matlab', '9.13.0')
         EVC=eigenvector_centrality_und(full(R(Coordsi,Coordsi)));
     else
         EVC=centrality(graph(full(R(Coordsi,Coordsi))),"eigenvector");
@@ -310,7 +311,7 @@ end
 
 % Feature selection - using constraint of communality
 
-l=true;    
+l=true;
 while l==true
     l=false;
     COMMUNALITY=max(LOADINGS'.^2);
@@ -336,7 +337,7 @@ while l==true
         else
             EVC=EVCs{i};
             L(:,i)=sum(data(:,Coordsi).*EVC',2);
-        end 
+        end
     end
     
     if ((size(L,2)>1)&&(is_rotated==true))
@@ -362,7 +363,7 @@ while l==true
     if min(COMMUNALITY)>=min_communality
         l=false;
     end
-end     
+end
 
 
 l=false;
@@ -401,7 +402,7 @@ while l==false
     
     for i=1:numel(M)
         Coordsi=Coords((S==M(i))&(coords==1));
-        if isMATLABReleaseOlderThan('R2022b')
+        if verLessThan('matlab', '9.13.0')
             EVC=eigenvector_centrality_und(full(R(Coordsi,Coordsi)));
         else
             EVC=centrality(graph(full(R(Coordsi,Coordsi))),"eigenvector");
@@ -464,7 +465,7 @@ if biplots==true
                 subplot(n,n,k)
                 if (i==j)
                     histfit(LOADINGS(:,i),10,'kernel')
-                    title(strcat('NDA',num2str(i)));                    
+                    title(strcat('NDA',num2str(i)));
                 else
                     biplot(LOADINGS(:,[i,j]),'Scores',L(:,[i,j]),'VarLabels',XHeader(S~=0))
                     xlabel(['Latent variable ',num2str(i)]); ylabel(['Latent variable ',num2str(j)]);
@@ -483,3 +484,6 @@ if biplots==true
     end
 end
 
+Scores=L; %Factor Scores
+CMTX=C; %Correlation matrices
+MEMBERSHIPS=S;
